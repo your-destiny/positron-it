@@ -1,5 +1,7 @@
 <?php
 
+use App\Containers\Books\Actions\UpdateBooksWithRelationsAction;
+use App\Containers\Books\Classes\BookParser;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -28,4 +30,11 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-require __DIR__.'/auth.php';
+Route::get('/test', function () {
+    return (new UpdateBooksWithRelationsAction(
+        (new BookParser('https://gitlab.com/prog-positron/test-app-vacancy/-/raw/master/books.json'))
+        ->readJsonFromUri()
+    ))->run();
+});
+
+require __DIR__ . '/auth.php';
