@@ -96,8 +96,13 @@ class CategoryListScreen extends Screen
 
     public function asyncGetCategory(Category $category): array
     {
+        $books = $category->books()
+                        ->get()
+                        ->mapWithKeys(fn($el) => [$el->id => $el->id])
+                        ->toArray();
         return [
-            $this->screenData['key'] => $category
+            $this->screenData['key'] => $category,
+            'books[]' => $books,
         ];
     }
 
@@ -112,21 +117,29 @@ class CategoryListScreen extends Screen
             'name' => $request->name
         ]);
 
+        if (isset($request->books) && count($request->books) > 0) {
+            $category->books()->sync($request->books);
+        }
+
+        if (!$request->parent) {
+            Toast::warning("Операция обновления узлов не была выполнена, так как не выбран узел для действия");
+
+            return redirect()->route($this->screenData['routeRedirect']);
+        }
+
         $node = Category::find($request->parent);
+
+        if (boolval($request->rootNode)) {
+            $category->saveAsRoot();
+
+            Toast::info("Операция добавления успешно завершена");
+
+            return redirect()->route($this->screenData['routeRedirect']);
+        }
 
         $func = $request->action_node;
 
         $this->$func($category, $node, $request->before_after);
-
-        //$category->prependNode($node); // сделать родителем с добавлением до узла (станет корнем)
-        //$category->appendNode($node); // сделать родителем с добавлением после узла (станет корнем)
-
-        //$node->prependNode($category); // сделать потомком с добавлением до узла
-        //$node->appendNode($category); // сделать потомком с добавлением после узла
-
-        //$category->insertBeforeNode($node); // вставить до узла
-        //$category->insertAfterNode($node); // вставить после узла
-
 
         Toast::info("Операция добавления успешно завершена");
 
@@ -142,24 +155,74 @@ class CategoryListScreen extends Screen
     {
         $updateData = $request->get($this->screenData['key']);
 
-        if (boolval($request->name_or_all)) {
-            $model = new $this->screenData['model']();
+        $books = $request->get('books')
+            ? $request->get('books')
+            : [] ;
 
-            $model->where('id', $updateData['id'])
-                  ->update(['name' => $updateData['name']]);
+        ($this->screenData['model'])::find($updateData['id'])->books()->sync($books);
+
+        if (boolval($request->name_or_all)) {
+            $this->updateNode($updateData);
+
+            Toast::info('Операция обновления успешно завершена, обновлены данные без узлов');
 
             return redirect()->route($this->screenData['routeRedirect']);
         }
 
+        $this->updateNode($updateData);
+
         $category = Category::where('id', $updateData['id'])->first();
 
+        if (boolval($request->rootNode)) {
+            $category->saveAsRoot();
+
+            Toast::info('Операция обновления успешно завершена,узел стал корневым');
+
+            return redirect()->route($this->screenData['routeRedirect']);
+        }
+
+        if (!isset($updateData['parent_id'])) {
+            Toast::warning('Операция обновления узлов не была выполнена, так как не выбран узел для дейсвтия');
+
+            return redirect()->route($this->screenData['routeRedirect']);
+        }
+
         $node = Category::find($updateData['parent_id']);
+
+        if ($category->isDescendantOf($node) || $node->isDescendantOf($category)) {
+            Toast::error('один из узлов не должен быть потомком.');
+
+            return redirect()->route($this->screenData['routeRedirect']);
+        }
+
+/*        if ($category->parent_id == $node->id) {
+            $this->inRootParent($category, $node, $request->before_after);
+
+            Toast::info('Операция обновления успешно завершена');
+
+            return redirect()->route($this->screenData['routeRedirect']);
+        }*/
 
         $func = $request->action_node;
 
         $this->$func($category, $node, $request->before_after);
 
         Toast::info('Операция обновления успешно завершена');
+
+        return redirect()->route($this->screenData['routeRedirect']);
+    }
+
+    /**
+     * @param  Request  $request
+     *
+     * @return RedirectResponse
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        $category = Category::find($request->id);
+        $category->delete();
+
+        Toast::info('Операция удаления успешно завершена');
 
         return redirect()->route($this->screenData['routeRedirect']);
     }
@@ -193,5 +256,26 @@ class CategoryListScreen extends Screen
     private function pasteInNode($category, $node, string $place): void
     {
         $place == 'before' ? $category->insertBeforeNode($node) : $category->insertAfterNode($node);
+    }
+
+    /**
+     * @param  Category  $category
+     * @param  Category  $node
+     * @param  string  $place
+     */
+    private function inRootParent($category, $node, string $place): void
+    {
+        $node->ancestors->last()
+            ? $this->inNode($category, $node->ancestors->last(), $place)
+            : $category->saveAsRoot();
+        $this->inNode($node, $category, $place);
+    }
+
+    private function updateNode($updateData): void
+    {
+        $model = new $this->screenData['model']();
+
+        $model->where('id', $updateData['id'])
+              ->update(['name' => $updateData['name']]);
     }
 }

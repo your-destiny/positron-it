@@ -26,7 +26,6 @@ class BookParser
     #[Pure] public function __construct(
     private string $uri,
     ) {
-        $this->binderImagesBook = new BinderImagesBooks();
     }
 
     public function readJsonFromUri(): Collection
@@ -42,50 +41,31 @@ class BookParser
 
         $newBooks = collect();
 
-        $file = $file
+        $file
             ->collect()
             ->recursive()
-            ->whereIn('isbn', $isbnUnique->toArray())->toArray();
-
-        $pool = Pool::create();
-
-        foreach (range(0, 393) as $i) {
-            $el = $file[$i];
-            $pool[] = async(function () use ($el) {
-                $temp = $el;
-
-                $temp['publishedDate'] = $this->bookDateConvert($temp['publishedDate']);
-
-                $temp['thumbnailUrl'] = $this->binderImagesBook->getImage($temp['thumbnailUrl'] ?? '');
-
-                return[
-                                    'book' => $temp,
-                                    'categories' => $temp['categories'] ?? [],
-                                    'authors' => $temp['authors'] ?? []
-                                ];
-            })->then(function ($output) use ($newBooks) {
-                $newBooks->push($output);
-            });
-        }
-        await($pool);
-            /*->each(function ($el) use ($newBooks) {
-
-
+            ->whereIn('isbn', $isbnUnique->toArray())
+            ->each(function ($el) use ($newBooks) {
                     $temp = $el;
 
-                    $temp['publishedDate'] = $this->bookDateConvert($temp['publishedDate']);
+                    $temp->put('publishedDate', $this->bookDateConvert($temp->get('publishedDate')));
 
-                    $temp['thumbnailUrl'] = $this->binderImagesBook->getImage($temp['thumbnailUrl']);
+                    $imageUrl = $temp['thumbnailUrl'] ?? null;
 
-                    $newBooks->push([
-                                        'book' => $temp,
-                                        'categories' => $temp['categories'],
-                                        'authors' => $temp['authors']
-                    ]);
+                    $temp['thumbnailUrl'] = (new BinderImagesBooks())
+                        ->getNameForDatabase($temp['thumbnailUrl'] ?? null);
+
+                    $newBooks->push(collect([
+                        'book' => $temp,
+                        'categories' => $this->checkCategoriesIsEmpty($this->filterCollection($temp['categories'])),
+                        'authors' => $this->filterCollection($temp['authors']),
+                        'image' => $imageUrl
+                    ]));
+
                 return true;
-            });*/
-        $s = $newBooks->toArray();
-            return $newBooks;
+            });
+
+        return $newBooks;
     }
 
     private function addMissingAttributesToBookModelArray(array $elements): array
@@ -105,14 +85,26 @@ class BookParser
         return $elements;
     }
 
-    private function bookDateConvert($date): ?string
+    private function bookDateConvert(?Collection $date): ?string
     {
-        $date = $date['$date'] ?? null;
-
-        if ($date) {
-            return Carbon::make($date)->format((new Book())->getDateFormat());
+        if (!$date) {
+            return $date;
         }
 
-        return $date;
+        $date = $date->get('$date');
+
+        return Carbon::make($date)->format((new Book())->getDateFormat());
+    }
+
+    private function filterCollection(Collection $data): Collection
+    {
+        return $data->filter(fn($el) => $el)->values();
+    }
+
+    private function checkCategoriesIsEmpty(Collection $categories): Collection
+    {
+        return $categories->count() == 0
+            ? collect(['Новинки'])
+            : $categories;
     }
 }
