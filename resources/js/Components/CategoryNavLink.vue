@@ -1,9 +1,9 @@
 <template>
-  <span>
-  <inertia-link :href="href" :class="classes">
-    <slot />
+  <inertia-link :href="href" >
+  <div :class="classes" class="px-4 py-3 leading-normal rounded-lg" role="alert">
+      <slot />
+  </div>
   </inertia-link>
-    </span>
 </template>
 
 <script>
@@ -13,8 +13,8 @@ export default {
   computed: {
     classes() {
       return this.active
-          ? 'text-blue-700 bg-blue-100 rounded-lg inline-flex items-center px-1 pt-1 border-b-2 border-indigo-400 text-sm font-medium leading-5 text-gray-900 focus:outline-none focus:border-indigo-700 transition duration-150 ease-in-out'
-          : 'text-blue-700 bg-blue-100 rounded-lg inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out'
+          ? 'text-green-700 bg-green-100'
+          : 'text-blue-700 bg-blue-100'
     }
   }
 }

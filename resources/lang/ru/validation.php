@@ -124,6 +124,7 @@ return [
     'uploaded'             => 'Загрузка поля :attribute не удалась.',
     'url'                  => 'Поле :attribute имеет ошибочный формат URL.',
     'uuid'                 => 'Поле :attribute должно быть корректным UUID.',
+    'phone'                => 'Поле :attribute является невалидным',
     'custom'               => [
         'attribute-name' => [
             'rule-name' => 'custom-message',
@@ -160,5 +161,7 @@ return [
         'title'                 => 'Наименование',
         'username'              => 'Никнейм',
         'year'                  => 'Год',
+        'tel'                   => 'Телефон',
+        'message'               => 'Сообщение',
     ],
 ];
