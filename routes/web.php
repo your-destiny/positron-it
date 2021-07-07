@@ -2,6 +2,11 @@
 
 use App\Containers\Books\Actions\UpdateBooksWithRelationsAction;
 use App\Containers\Books\Classes\BookParser;
+use App\Http\Controllers\BookController;
+use App\Http\Controllers\CategoriesController;
+use App\Http\Controllers\FeedbackController;
+use App\Models\Setting;
+use App\Orchid\Screens\Book\BookListScreen;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,24 +22,24 @@ use Inertia\Inertia;
 |
 */
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+Route::get('/cat', function () {
+    return \App\Models\Category::withDepth()
+        ->defaultOrder()
+        //->with('ancestors')
+        //->with('books')
+            ->get()
+            ->toTree();
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/', [CategoriesController::class, 'index'])->name('categories');
 
-Route::get('/test', function () {
-    return (new UpdateBooksWithRelationsAction(
-        (new BookParser('https://gitlab.com/prog-positron/test-app-vacancy/-/raw/master/books.json'))
-        ->readJsonFromUri()
-    ))->run();
-});
+Route::get('category/{category}', [CategoriesController::class, 'show'])->name('category');
+
+Route::get('book/{book}', [BookController::class, 'show'])->name('book');
+
+Route::get('/feedback', [FeedbackController::class, 'create'])
+     ->name('feedback');
+
+Route::post('/feedback', [FeedbackController::class, 'store']);
 
 require __DIR__ . '/auth.php';
