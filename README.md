@@ -20,6 +20,11 @@
 
 Некоторая информация:
 
+url с тестовым сайтом : https://positron.lightcode.tech
+
+https://positron.lightcode.tech/admin - открывается админка (admin@admin.com password)
+
+
 Для отправки email в env нужно заполнить данные, в контроллере формы (FeedbackController) закоментирована отправка по email
 
 Настройки добавляются сидером, данные настройки ищуться по полю code в базе данных.
