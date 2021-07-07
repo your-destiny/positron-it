@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateSettingsTable extends Migration
+class CreateFeedbackFormTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,11 +13,13 @@ class CreateSettingsTable extends Migration
      */
     public function up()
     {
-        Schema::create('settings', function (Blueprint $table) {
+        Schema::create('feedback_form', function (Blueprint $table) {
             $table->id();
-            $table->text('name');
-            $table->text('code');
-            $table->text('value')->nullable();
+            $table->text('email');
+            $table->text('name')->nullable();
+            $table->text('message');
+            $table->text('tel')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -28,6 +30,6 @@ class CreateSettingsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('settings');
+        Schema::dropIfExists('feedback_form');
     }
 }
